@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบตรวจสอบห้องว่าง</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-container: #242424;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        body.light-mode {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-container: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #ddd;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-container);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px var(--shadow);
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .datetime {
+            text-align: center;
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .theme-toggle-btn {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .day-selector {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .day-selector select {
+            padding: 8px 15px;
+            font-size: 1em;
+            border: 2px solid #2196F3;
+            border-radius: 5px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .search-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .search-label {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--text-primary);
+        }
+
+        .search-box {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px;
+            font-size: 1.1em;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            text-align: center;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .status-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .status-label {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+
+        .status-box {
+            display: inline-block;
+            padding: 15px 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+
+        .status-available {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-occupied {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-closed {
+            background: #2196F3;
+            color: white;
+        }
+
+        .schedule-title {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 40px 0 20px 0;
+            color: var(--text-primary);
+            padding-top: 30px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .building-section {
+            margin-bottom: 30px;
+        }
+
+        .building-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .floor-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .floor-btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .floor-btn:hover {
+            background: #1976D2;
+        }
+
+        .schedule-view {
+            display: none;
+        }
+
+        .schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .back-btn:hover {
+            background: #555;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .schedule-table th,
+        .schedule-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .schedule-table th {
+            background: #2196F3;
+            color: white;
+            font-weight: bold;
+        }
+
+        .room-available {
+            background: #4CAF50 !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .room-occupied {
+            background: #f44336 !important;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .current-period {
+            background: #FFF59D !important;
+            color: #333 !important;
+        }
+
+        body.light-mode .current-period {
+            background: #FFF59D !important;
+            color: #333 !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .datetime {
+                font-size: 1em;
+            }
+
+            .schedule-table {
+                font-size: 0.8em;
+            }
+
+            .floor-btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle">
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+            <span id="themeIcon">☀️</span>
+            <span id="themeText">Light</span>
+        </button>
+    </div>
+    
+    <div class="container">
+        <div id="mainView">
+            <h1 id="dateDisplay">วันXXX ที่ XX</h1>
+            <div class="datetime" id="timeDisplay">เวลา : XX:XX</div>
+
+            <div class="search-section">
+                <label class="search-label">ห้อง</label>
+                <input type="text" class="search-box" id="roomSearch" placeholder="ใส่เลขห้อง # เช่น 121 222">
+            </div>
+
+            <div class="status-section">
+                <div class="status-label">สถานะ : <span id="statusText">XXX</span></div>
+                <div id="statusBox" class="status-box"></div>
+            </div>
+
+            <div class="schedule-title">ตารางห้อง</div>
+
+            <div class="building-section">
+                <div class="building-title">อาคาร 1</div>
+                <div class="floor-buttons">
+                    <button class="floor-btn" onclick="showSchedule(1, 1)">ชั้น 1</button>
+                    <button class="floor-btn" onclick="showSchedule(1, 2)">ชั้น 2</button>
+                    <button class="floor-btn" onclick="showSchedule(1, 3)">ชั้น 3</button>
+                </div>
+            </div>
+
+            <div class="building-section">
+                <div class="building-title">อาคาร 2</div>
+                <div class="floor-buttons">
+                    <button class="floor-btn" onclick="showSchedule(2, 1)">ชั้น 1</button>
+                    <button class="floor-btn" onclick="showSchedule(2, 2)">ชั้น 2</button>
+                    <button class="floor-btn" onclick="showSchedule(2, 3)">ชั้น 3</button>
+                    <button class="floor-btn" onclick="showSchedule(2, 4)">ชั้น 4</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="scheduleView" class="schedule-view">
+            <div class="schedule-header">
+                <button class="back-btn" onclick="showMain()">← กลับ</button>
+                <h2 id="scheduleTitle">ตารางห้อง - อาคาร X ชั้น X</h2>
+                <div class="day-selector">
+                    <select id="daySelector" onchange="updateScheduleTable()">
+                        <option value="1">จันทร์</option>
+                        <option value="2">อังคาร</option>
+                        <option value="3">พุธ</option>
+                        <option value="4">พฤหัสบดี</option>
+                        <option value="5">ศุกร์</option>
+                    </select>
+                </div>
+            </div>
+            <div id="scheduleTableContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let classData = {}; // {day: {period: [rooms...]}}
+        let allRooms = new Set();
+        let currentBuilding = 1;
+        let currentFloor = 1;
+
+        // Thai day names
+        const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        const dayAbbrev = {
+            'จันทร์': 1,
+            'อังคาร': 2,
+            'พุธ': 3,
+            'พฤ': 4,
+            'พฤหัสบดี': 4,
+            'ศ': 5,
+            'ศุกร์': 5
+        };
+
+        // Load class data from file
+        async function loadClassData() {
+            try {
+                const response = await fetch('class_data.txt');
+                const text = await response.text();
+                const lines = text.split('\n');
+                
+                let currentDay = null;
+                let currentPeriod = null;
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+                    
+                    // Check if it's a day/period header
+                    let headerMatch = line.match(/(จันทร์|อังคาร|พุธ|พฤ|ศ)\s*คาบที่?\s*(\d+)/i);
+                    if (headerMatch) {
+                        const dayText = headerMatch[1];
+                        currentDay = dayAbbrev[dayText];
+                        currentPeriod = parseInt(headerMatch[2]);
+                        
+                        if (!classData[currentDay]) {
+                            classData[currentDay] = {};
+                        }
+                        if (!classData[currentDay][currentPeriod]) {
+                            classData[currentDay][currentPeriod] = [];
+                        }
+                        continue;
+                    }
+                    
+                    // Parse room numbers
+                    if (currentDay && currentPeriod && line !== '-') {
+                        const rooms = line.split(',').map(r => r.trim()).filter(r => r && r !== '-' && r.match(/^\d{3}$/));
+                        for (let room of rooms) {
+                            classData[currentDay][currentPeriod].push(room);
+                            allRooms.add(room);
+                        }
+                    }
+                }
+                
+                console.log('Loaded class data:', classData);
+                console.log('All rooms:', Array.from(allRooms).sort());
+            } catch (error) {
+                console.error('Error loading class data:', error);
+            }
+        }
+
+        // Get current period based on time
+        function getCurrentPeriod() {
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const currentTime = hour * 60 + minute;
+
+            const periods = [
+                { period: 1, start: 8 * 60 + 20, end: 9 * 60 + 20 },
+                { period: 2, start: 9 * 60 + 20, end: 10 * 60 + 20 },
+                { period: 3, start: 10 * 60 + 20, end: 11 * 60 + 20 },
+                { period: 4, start: 11 * 60 + 20, end: 12 * 60 + 20 },
+                { period: 5, start: 12 * 60 + 20, end: 13 * 60 + 20 },
+                { period: 6, start: 13 * 60 + 20, end: 14 * 60 + 20 },
+                { period: 7, start: 14 * 60 + 20, end: 15 * 60 + 20 },
+                { period: 8, start: 15 * 60 + 20, end: 16 * 60 + 20 }
+            ];
+
+            for (let p of periods) {
+                if (currentTime >= p.start && currentTime < p.end) {
+                    return p.period;
+                }
+            }
+            return 0; // Not in class time
+        }
+
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const dayName = dayNames[dayOfWeek];
+            const date = now.getDate();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear() + 543;
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            document.getElementById('dateDisplay').textContent = `วัน${dayName} ที่ ${date}/${month}/${year}`;
+            document.getElementById('timeDisplay').textContent = `เวลา : ${hours}:${minutes}`;
+        }
+
+        // Check if current day is weekend
+        function isWeekend() {
+            const now = new Date();
+            const day = now.getDay();
+            return day === 0 || day === 6; // Sunday or Saturday
+        }
+
+        // Check if after school hours
+        function isAfterSchool() {
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            return currentTime >= 16 * 60 + 20; // After 16:20
+        }
+
+        // Check room availability
+        function checkRoomAvailability(room) {
+            // Check if weekend
+            if (isWeekend()) {
+                return { available: 'weekend', status: 'วันหยุด' };
+            }
+            
+            // Check if after school
+            if (isAfterSchool()) {
+                return { available: 'closed', status: 'เลิกเรียน' };
+            }
+            
+            const currentPeriod = getCurrentPeriod();
+            
+            if (currentPeriod === 0) {
+                return { available: 'closed', status: 'นอกเวลาเรียน' };
+            }
+            
+            // Check if room exists in data (is a classroom)
+            if (!allRooms.has(room)) {
+                return { available: false, status: 'ไม่พบห้อง' };
+            }
+            
+            const now = new Date();
+            const currentDay = now.getDay(); // 1=Mon, 2=Tue, etc.
+            
+            // Check if room is occupied in current period
+            if (classData[currentDay] && classData[currentDay][currentPeriod]) {
+                const occupied = classData[currentDay][currentPeriod].includes(room);
+                if (occupied) {
+                    return { available: false, status: 'ไม่ว่าง' };
+                }
+            }
+            
+            return { available: true, status: 'ว่าง' };
+        }
+
+        // Search room
+        document.getElementById('roomSearch').addEventListener('input', function() {
+            const room = this.value.trim();
+            const statusBox = document.getElementById('statusBox');
+            const statusText = document.getElementById('statusText');
+            
+            if (room.length === 3) {
+                const result = checkRoomAvailability(room);
+                
+                if (result.available === true) {
+                    statusBox.textContent = result.status;
+                    statusBox.className = 'status-box status-available';
+                } else if (result.available === 'weekend' || result.available === 'closed') {
+                    statusBox.textContent = result.status;
+                    statusBox.className = 'status-box status-closed';
+                } else {
+                    statusBox.textContent = result.status;
+                    statusBox.className = 'status-box status-occupied';
+                }
+                statusText.textContent = result.status;
+            } else {
+                statusBox.textContent = '';
+                statusBox.className = 'status-box';
+                statusText.textContent = 'XXX';
+            }
+        });
+
+        // Show schedule for building and floor
+        function showSchedule(building, floor) {
+            currentBuilding = building;
+            currentFloor = floor;
+            
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('scheduleView').style.display = 'block';
+            document.getElementById('scheduleTitle').textContent = `ตารางห้อง - อาคาร ${building} ชั้น ${floor}`;
+            
+            // Set day selector to current day (or Monday if weekend)
+            const now = new Date();
+            let currentDay = now.getDay();
+            if (currentDay === 0 || currentDay === 6) {
+                currentDay = 1; // Default to Monday
+            }
+            document.getElementById('daySelector').value = currentDay;
+            
+            updateScheduleTable();
+        }
+
+        // Update schedule table
+        function updateScheduleTable() {
+            const selectedDay = parseInt(document.getElementById('daySelector').value);
+            
+            // Get rooms for this floor
+            const floorRooms = Array.from(allRooms).filter(room => {
+                if (room.length === 3) {
+                    const b = parseInt(room[0]);
+                    const f = parseInt(room[1]);
+                    return b === currentBuilding && f === currentFloor;
+                }
+                return false;
+            }).sort();
+            
+            // Create schedule table
+            let html = '<table class="schedule-table"><thead><tr><th>ห้อง</th>';
+            for (let period = 1; period <= 8; period++) {
+                const startTime = 7 + period;
+                const endTime = startTime + 1;
+                html += `<th>คาบ ${period}<br>${startTime}:20-${endTime}:20</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            
+            const now = new Date();
+            const currentDay = now.getDay();
+            const currentPeriod = getCurrentPeriod();
+            
+            for (let room of floorRooms) {
+                html += `<tr><td><strong>${room}</strong></td>`;
+                for (let period = 1; period <= 8; period++) {
+                    const isCurrentPeriod = (selectedDay === currentDay && period === currentPeriod);
+                    const periodClass = isCurrentPeriod ? 'current-period' : '';
+                    
+                    // Check if room is occupied in this period on selected day
+                    let occupied = false;
+                    if (classData[selectedDay] && classData[selectedDay][period]) {
+                        occupied = classData[selectedDay][period].includes(room);
+                    }
+                    
+                    if (occupied) {
+                        html += `<td class="room-occupied ${periodClass}">ไม่ว่าง</td>`;
+                    } else {
+                        html += `<td class="room-available ${periodClass}">ว่าง</td>`;
+                    }
+                }
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table>';
+            document.getElementById('scheduleTableContainer').innerHTML = html;
+        }
+
+        // Show main view
+        function showMain() {
+            document.getElementById('mainView').style.display = 'block';
+            document.getElementById('scheduleView').style.display = 'none';
+        }
+
+        // Theme toggle function
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+                localStorage.setItem('theme', 'light');
+            } else {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme preference (default to dark)
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (savedTheme === 'light') {
+                body.classList.add('light-mode');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+            } else {
+                // Default is dark mode (no class needed)
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+            }
+        }
+
+        // Initialize
+        loadTheme();
+        loadClassData();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>
